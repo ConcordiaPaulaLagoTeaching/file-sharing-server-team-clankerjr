@@ -9,8 +9,8 @@ public class FileSystemManager {
 
     private final int MAXFILES = 5;
     private final int MAXBLOCKS = 10;
-    private final static FileSystemManager instance;
-    private final RandomAccessFile disk;
+    private FileSystemManager instance;
+    private RandomAccessFile disk;
     private final ReentrantLock globalLock = new ReentrantLock();
 
     private static final int BLOCK_SIZE = 128; // Example block size
@@ -22,10 +22,10 @@ public class FileSystemManager {
         // Initialize the file system manager with a file
         if(instance == null) {
             //TODO Initialize the file system: >Progress below
-            this.disk = new RandomAccessFile(diskfile, "rw");   //initialize 'virtual disk' for managing files
+            //this.disk = new RandomAccessFile(diskfile, "rw");   //initialize 'virtual disk' for managing files
             this.inodeTable = new FEntry[MAXFILES]; //initialize array of file entries
             this.freeBlockList = new boolean[MAXBLOCKS]; //initializes array of free block (all blocks start free)
-            Arrays.fill(freeBlockList, true);
+            //Arrays.fill(freeBlockList, true);
 
             instance = this;
 
@@ -49,9 +49,9 @@ public class FileSystemManager {
 
     public void deleteFile(String fileName){
         if (fileName == null){
-            throw new IllegalArgumentException("Filename cannot be empty.")
+            throw new IllegalArgumentException("Filename cannot be empty.");
         };
-        fileIndex = findFileIndex(fileName);
+        int fileIndex = findFileIndex(fileName);
         if (fileIndex == -1){
             throw new IllegalArgumentException("File not found: " + fileName);
         };
@@ -87,7 +87,7 @@ public class FileSystemManager {
     }
 
     private int countFiles(){
-        count = 0;
+        int count = 0;
         for (int i = 0; i < MAXFILES; i++){
             if (inodeTable[i] != null) count++;
         }
