@@ -2,8 +2,10 @@ package ca.concordia.filesystem;
 
 import ca.concordia.filesystem.datastructures.FEntry;
 
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Arrays;
 
 public class FileSystemManager {
 
@@ -22,10 +24,14 @@ public class FileSystemManager {
         // Initialize the file system manager with a file
         if(instance == null) {
             //TODO Initialize the file system: >Progress below
-            //this.disk = new RandomAccessFile(diskfile, "rw");   //initialize 'virtual disk' for managing files
+             try {
+                this.disk = new RandomAccessFile(filename, "rw");   // initialize 'virtual disk'
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to open disk file: " + filename, e);
+            }
             this.inodeTable = new FEntry[MAXFILES]; //initialize array of file entries
             this.freeBlockList = new boolean[MAXBLOCKS]; //initializes array of free block (all blocks start free)
-            //Arrays.fill(freeBlockList, true);
+            Arrays.fill(freeBlockList, true);
 
             instance = this;
 
