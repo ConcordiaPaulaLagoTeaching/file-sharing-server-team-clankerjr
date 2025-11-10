@@ -149,5 +149,26 @@ public class FileSystemManager {
 
     }
 
-    // TODO: Add readFile, writeFile and other required methods,
+    public byte[] readFile(String fileName) throws IOException {
+        if (fileName == null) throw new IllegalArgumentException("Invalid args");
+        globalLock.lock();
+        try {
+            int fileIndex = findFileIndex(fileName);
+            if (fileIndex == -1) throw new IllegalArgumentException("File not found: " + fileName);
+            FEntry entry = inodeTable[fileIndex];
+            if (entry == null) throw new IllegalArgumentException("File has no inode");
+            int size = entry.getFilesize();
+            short start = entry.getFirstBlock();
+            if (start < 0 || size <= 0) return new byte[0];
+            byte[] buf = new byte[size];
+            disk.seek((long) start * BLOCK_SIZE);
+            disk.readFully(buf);
+            return buf;
+        } finally {
+            globalLock.unlock();
+        }
+    }
+
+
+    // TODO: Add other required methods,
 }
