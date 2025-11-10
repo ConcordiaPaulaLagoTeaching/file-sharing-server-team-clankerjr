@@ -55,8 +55,8 @@ public class FileSystemManager {
         if (fileIndex == -1){
             throw new IllegalArgumentException("File not found: " + fileName);
         };
-        FEntry fileToDelete = inodeTable[fileIndex];
-        freeBlockList[fileToDelete.getFirstBlock()] = true; //frees block corresponding to file-to-be-deleted's first block
+        System.out.println(fileIndex);
+        freeBlockList[fileIndex] = true; //frees block corresponding to file-to-be-deleted's first block
         inodeTable[fileIndex] = null;
     }
 
