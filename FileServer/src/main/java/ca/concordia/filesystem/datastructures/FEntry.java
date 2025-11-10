@@ -13,7 +13,7 @@ public class FEntry {
         if (filename.length() > 11) {
             throw new IllegalArgumentException("Filename cannot be longer than 11 characters.");
         }
-        if (fileName == null) {
+        if (filename == null) {
             throw new IllegalArgumentException("Filename cannnot be empty.")
         }
         this.filename = filename;
