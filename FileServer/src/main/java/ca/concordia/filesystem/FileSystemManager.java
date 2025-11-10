@@ -104,7 +104,50 @@ public class FileSystemManager {
         return count;
     }
 
+    public void writeFile(String fileName, byte[] data) throws IOException{
+        if(fileName == null || data == null) throw new IllegalArgumentException("File not found " + fileName);
 
+        globalLock.lock();
+
+        try {
+            int fileIndex = findFileIndex(fileName);
+            if(fileIndex == -1) throw new IllegalArgumentException("File not found" + fileName);
+            
+            int blocksNeeded = (data.length + BLOCK_SIZE - 1) /BLOCK_SIZE;
+
+            int start = -1;
+
+            //find a slot of freeblocks of length blocksNeeded
+            outer:
+            for(int i =0; i < freeBlockList.length - blocksNeeded; i++){
+                for(int j = 0; j < blocksNeeded; j++){
+                    if(!freeBlockList[i+j]) continue outer;
+                }
+                start = i;
+                break;
+            }
+
+            if(start == -1) throw new IllegalStateException("Not enough free blocks.");
+        
+            // mark blocks allocated
+            for (int i = 0; i < blocksNeeded; i++) {
+                freeBlockList[start + i] = false;
+            }
+
+            // write data to disk at block offset
+            disk.seek((long) start * BLOCK_SIZE);
+            disk.write(data);
+
+            // update inode (replace entry with same filename, size and start)
+            FEntry updated = new FEntry(fileName, (short) data.length, (short) start);
+            inodeTable[fileIndex] = updated;
+        } finally {
+            globalLock.unlock();
+        }
+        
+        
+
+    }
 
     // TODO: Add readFile, writeFile and other required methods,
 }
