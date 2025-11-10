@@ -50,22 +50,26 @@ public class FileSystemManager {
     public void deleteFile(String fileName){
         if (fileName == null){
             throw new IllegalArgumentException("Filename cannot be empty.");
-        };
+        }
         int fileIndex = findFileIndex(fileName);
         if (fileIndex == -1){
             throw new IllegalArgumentException("File not found: " + fileName);
-        };
+        }
         System.out.println(fileIndex);
         freeBlockList[fileIndex] = true; //frees block corresponding to file-to-be-deleted's first block
         inodeTable[fileIndex] = null;
     }
 
-    String[] listFiles(){
-        String[] fileList = new String[countFiles()];   //returns array of size = # of non-null entries
+    public String listFiles(){
+        String fileList = "";   //returns array of size = # of non-null entries
         for (int i = 0; i < MAXFILES; i++){
             if (inodeTable[i] != null){
-                fileList[i] = inodeTable[i].getFilename();
-            };
+                fileList += inodeTable[i].getFilename();
+                fileList += ", ";
+            }
+        }
+        if (fileList != ""){
+            fileList = fileList.substring(0, fileList.length()-2);
         }
         return fileList;
     }
@@ -81,12 +85,12 @@ public class FileSystemManager {
         for (int i = 0; i < MAXFILES; i++){
             if (inodeTable[i] != null && inodeTable[i].getFilename().equals(fileName)){
                 return i;
-            };
+            }
         }
         return -1;
     }
 
-    private int countFiles(){
+    public int countFiles(){
         int count = 0;
         for (int i = 0; i < MAXFILES; i++){
             if (inodeTable[i] != null) count++;

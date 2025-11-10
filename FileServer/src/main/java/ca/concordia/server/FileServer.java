@@ -52,8 +52,11 @@ public class FileServer {
 
                                 break;
                             case "LIST":
-
+                                String filenames = fsManager.listFiles();
+                                writer.println(filenames);
+                                writer.flush();
                                 
+
                                 break;
                             case "DELETE":
                                 fsManager.deleteFile(parts[1]);
