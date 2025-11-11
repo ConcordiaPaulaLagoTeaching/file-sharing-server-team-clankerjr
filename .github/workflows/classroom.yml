@@ -1,0 +1,30 @@
+name: Autograding Tests
+'on':
+- workflow_dispatch
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Create File Test
+      id: create-file-test
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Create File Test
+        setup-command: ''
+        command: mvn -Dtest=FileSystemTests#testCreateFile test
+        timeout: 1
+        max-score: 10
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        CREATE-FILE-TEST_RESULTS: "${{steps.create-file-test.outputs.result}}"
+      with:
+        runners: create-file-test
