@@ -21,24 +21,88 @@ public class FileSystemManager {
     private boolean[] freeBlockList; // Bitmap for free blocks
 
     public FileSystemManager(String filename, int totalSize) {
-        // Initialize the file system manager with a file
-        if(instance == null) {
-            //TODO Initialize the file system: >Progress below
-             try {
-                this.disk = new RandomAccessFile(filename, "rw");   // initialize 'virtual disk'
+        if (instance == null) {
+            try {
+                this.disk = new RandomAccessFile(filename, "rw");
+                this.inodeTable = new FEntry[MAXFILES];
+                this.freeBlockList = new boolean[MAXBLOCKS];
+                Arrays.fill(freeBlockList, true);
+
+                if (disk.length() > 0) {
+                    loadMetadata(); // Load metadata if the disk file already exists
+                }
+
+                instance = this;
             } catch (IOException e) {
                 throw new RuntimeException("Unable to open disk file: " + filename, e);
             }
-            this.inodeTable = new FEntry[MAXFILES]; //initialize array of file entries
-            this.freeBlockList = new boolean[MAXBLOCKS]; //initializes array of free block (all blocks start free)
-            Arrays.fill(freeBlockList, true);
-
-            instance = this;
-
         } else {
             throw new IllegalStateException("FileSystemManager is already initialized.");
         }
+    }
 
+    private void loadMetadata() {
+        try {
+            disk.seek(0); // Start of metadata region
+
+            // Read inode table
+            for (int i = 0; i < MAXFILES; i++) {
+                int present = disk.readByte();
+                if (present == 0) {
+                    inodeTable[i] = null;
+                    disk.skipBytes(15); // Skip unused metadata (11 bytes for name, 2 for size, 2 for block)
+                } else {
+                    byte[] nameBytes = new byte[11];
+                    disk.read(nameBytes);
+                    String fileName = new String(nameBytes).trim();
+                    short fileSize = disk.readShort();
+                    short firstBlock = disk.readShort();
+                    inodeTable[i] = new FEntry(fileName, fileSize, firstBlock);
+                }
+            }
+
+            // Read free block list
+            for (int i = 0; i < MAXBLOCKS; i++) {
+                freeBlockList[i] = disk.readByte() == 1;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load metadata", e);
+        }
+    }
+
+    private void persistMetadata(){
+        // Write inode table
+        try{
+            disk.seek(0); // start of metadata region
+            for (int i = 0; i < MAXFILES; i++) {
+                FEntry entry = inodeTable[i];
+                if (entry == null) {
+                    disk.writeByte(0); // not present
+                    byte[] emptyName = new byte[11];
+                    disk.write(emptyName);
+                    disk.writeShort(0);
+                    disk.writeShort(-1);
+                } 
+                else {
+                    disk.writeByte(1); // present
+                    byte[] nameBytes = new byte[11];
+                    byte[] src = entry.getFilename().getBytes();
+                    System.arraycopy(src, 0, nameBytes, 0, src.length);
+                    disk.write(nameBytes);
+                    disk.writeShort(entry.getFilesize());
+                    disk.writeShort(entry.getFirstBlock());
+                }
+            }
+                // Write free block list
+            for (int i = 0; i < MAXBLOCKS; i++) {
+                disk.writeByte(freeBlockList[i] ? 1 : 0);
+            }
+            // Force flush to disk
+            disk.getChannel().force(true);
+        } catch (IOException e){
+            throw new RuntimeException("Failed to persist metadata", e);
+
+        }
     }
 
     public void createFile(String fileName){
@@ -51,6 +115,8 @@ public class FileSystemManager {
         }
         FEntry newFile = new FEntry(fileName, (short) 0, (short) -1); //filesize 0, no blocks allocated (signalled by -1)
         this.inodeTable[freeNodeIndex] = newFile;
+
+        persistMetadata();
     }
 
     public void deleteFile(String fileName){
@@ -64,6 +130,8 @@ public class FileSystemManager {
         System.out.println(fileIndex);
         freeBlockList[fileIndex] = true; //frees block corresponding to file-to-be-deleted's first block
         inodeTable[fileIndex] = null;
+
+        persistMetadata();
     }
 
     public String listFiles(){
@@ -141,6 +209,8 @@ public class FileSystemManager {
             // update inode (replace entry with same filename, size and start)
             FEntry updated = new FEntry(fileName, (short) data.length, (short) start);
             inodeTable[fileIndex] = updated;
+
+            persistMetadata();
         } finally {
             globalLock.unlock();
         }
@@ -163,7 +233,7 @@ public class FileSystemManager {
             byte[] buf = new byte[size];
             disk.seek((long) start * BLOCK_SIZE);
             disk.readFully(buf);
-
+            
             return buf;
         } finally {
             globalLock.unlock();
