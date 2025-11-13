@@ -163,6 +163,7 @@ public class FileSystemManager {
             byte[] buf = new byte[size];
             disk.seek((long) start * BLOCK_SIZE);
             disk.readFully(buf);
+
             return buf;
         } finally {
             globalLock.unlock();

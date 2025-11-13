@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class FileServer {
 
@@ -45,17 +47,31 @@ public class FileServer {
                             //TODO: Implement other commands READ, WRITE, DELETE, LIST
 
                             case "READ":
-                                
+                               
+                                byte[] data = fsManager.readFile(parts[1]);
+                                String content = new String(data);
+                                writer.println(content);
                                 
                                 break;
                             case "WRITE":
+                                String writecontent = "";
+
+                                for (int i = 2; i < parts.length; i++){
+                                    writecontent += parts[i];
+                                    if(i < parts.length -1){
+                                        writecontent += " ";
+                                    }
+                                }
+
+                                byte[] writedata = writecontent.getBytes();
+                                fsManager.writeFile(parts[1], writedata);
+                                writer.println("SUCCESS: write");
 
                                 break;
                             case "LIST":
                                 String filenames = fsManager.listFiles();
                                 writer.println(filenames);
                                 writer.flush();
-                                
 
                                 break;
                             case "DELETE":
