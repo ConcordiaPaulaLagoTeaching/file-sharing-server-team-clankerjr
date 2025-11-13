@@ -44,6 +44,7 @@ public class FileServer {
                                 writer.println("SUCCESS: File '" + parts[1] + "' created.");
                                 writer.flush();
                                 break;
+                                
                             //TODO: Implement other commands READ, WRITE, DELETE, LIST
 
                             case "READ":
@@ -51,9 +52,10 @@ public class FileServer {
                                 byte[] data = fsManager.readFile(parts[1]);
                                 String content = new String(data);
                                 writer.println(content);
-                                
+                                writer.flush();
                                 break;
                             case "WRITE":
+                                
                                 String writecontent = "";
 
                                 for (int i = 2; i < parts.length; i++){
@@ -66,7 +68,7 @@ public class FileServer {
                                 byte[] writedata = writecontent.getBytes();
                                 fsManager.writeFile(parts[1], writedata);
                                 writer.println("SUCCESS: write");
-
+                                writer.flush();
                                 break;
                             case "LIST":
                                 String filenames = fsManager.listFiles();
@@ -89,6 +91,7 @@ public class FileServer {
                         }
                     }
                 } catch (Exception e) {
+                    
                     e.printStackTrace();
                 } finally {
                     try {
