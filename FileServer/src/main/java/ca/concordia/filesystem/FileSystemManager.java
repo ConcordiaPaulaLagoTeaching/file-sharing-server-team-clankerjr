@@ -127,10 +127,9 @@ public class FileSystemManager {
         if (fileIndex == -1){
             throw new IllegalArgumentException("File not found: " + fileName);
         }
-        System.out.println(fileIndex);
-        freeBlockList[fileIndex] = true; //frees block corresponding to file-to-be-deleted's first block
+        FEntry entryToDelete = inodeTable[fileIndex];
+        freeBlocks(entryToDelete);
         inodeTable[fileIndex] = null;
-
         persistMetadata();
     }
 
@@ -164,12 +163,12 @@ public class FileSystemManager {
         return -1;
     }
 
-    public int countFiles(){
-        int count = 0;
-        for (int i = 0; i < MAXFILES; i++){
-            if (inodeTable[i] != null) count++;
+    private void freeBlocks(FEntry entryToFree){
+        int blocksUsed = (entryToFree.getFilesize() + BLOCK_SIZE - 1) / BLOCK_SIZE;
+        int firstBlock = entryToFree.getFirstBlock();
+        for (int i = firstBlock; i < firstBlock + blocksUsed; i++){
+            freeBlockList[i] = true; //frees blocks corresponding to file-to-be-deleted's used blocks
         }
-        return count;
     }
 
     public void writeFile(String fileName, byte[] data) throws IOException{
@@ -184,10 +183,13 @@ public class FileSystemManager {
             int blocksNeeded = (data.length + BLOCK_SIZE - 1) /BLOCK_SIZE;
 
             int start = -1;
+            //free blocks before writing new data
+            FEntry entryToWrite = inodeTable[fileIndex];
+            freeBlocks(entryToWrite);
 
             //find a slot of freeblocks of length blocksNeeded
             outer:
-            for(int i =0; i < freeBlockList.length - blocksNeeded; i++){
+            for(int i =0; i <= freeBlockList.length - blocksNeeded; i++){
                 for(int j = 0; j < blocksNeeded; j++){
                     if(!freeBlockList[i+j]) continue outer;
                 }
@@ -196,7 +198,7 @@ public class FileSystemManager {
             }
 
             if(start == -1) throw new IllegalStateException("Not enough free blocks.");
-        
+            
             // mark blocks allocated
             for (int i = 0; i < blocksNeeded; i++) {
                 freeBlockList[start + i] = false;
@@ -239,7 +241,4 @@ public class FileSystemManager {
             globalLock.unlock();
         }
     }
-
-
-    // TODO: Add other required methods,
 }
