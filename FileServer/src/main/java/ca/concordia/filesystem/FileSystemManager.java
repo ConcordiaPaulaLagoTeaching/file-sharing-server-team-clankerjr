@@ -40,7 +40,30 @@ public class FileSystemManager {
             throw new IllegalStateException("FileSystemManager is already initialized.");
         }
     }
+    private int findFreeInode(){
+        for (int i = 0; i < MAXFILES; i++){
+            if (inodeTable[i] == null) return i;
+        }
+        return -1;
+    }
 
+    private int findFileIndex(String fileName){
+        for (int i = 0; i < MAXFILES; i++){
+            if (inodeTable[i] != null && inodeTable[i].getFilename().equals(fileName)){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void freeBlocks(FEntry entryToFree){
+        int blocksUsed = (entryToFree.getFilesize() + BLOCK_SIZE - 1) / BLOCK_SIZE;
+        int firstBlock = entryToFree.getFirstBlock();
+        for (int i = firstBlock; i < firstBlock + blocksUsed; i++){
+            freeBlockList[i] = true; //frees blocks corresponding to file-to-be-deleted's used blocks
+        }
+    }
+    
     private void loadMetadata() {
         try {
             disk.seek(0); // Start of metadata region
@@ -119,7 +142,7 @@ public class FileSystemManager {
         persistMetadata();
     }
 
-    public void deleteFile(String fileName){
+    public void deleteFile(String fileName) throws IOException{
         if (fileName == null){
             throw new IllegalArgumentException("Filename cannot be empty.");
         }
@@ -127,10 +150,15 @@ public class FileSystemManager {
         if (fileIndex == -1){
             throw new IllegalArgumentException("File not found: " + fileName);
         }
-        System.out.println(fileIndex);
-        freeBlockList[fileIndex] = true; //frees block corresponding to file-to-be-deleted's first block
-        inodeTable[fileIndex] = null;
+        FEntry entryToDelete = inodeTable[fileIndex];
+        byte[] zeroOverwrite = new byte[entryToDelete.getFilesize()];
+        disk.seek((long) (entryToDelete.getFirstBlock()+1) * BLOCK_SIZE);
+        disk.write(zeroOverwrite);
 
+        //clear file metadata
+        freeBlocks(entryToDelete);
+        //entryToDelete.setFilesize((short) 0);
+        inodeTable[fileIndex] = null;
         persistMetadata();
     }
 
@@ -148,30 +176,6 @@ public class FileSystemManager {
         return fileList;
     }
 
-    private int findFreeInode(){
-        for (int i = 0; i < MAXFILES; i++){
-            if (inodeTable[i] == null) return i;
-        }
-        return -1;
-    }
-
-    private int findFileIndex(String fileName){
-        for (int i = 0; i < MAXFILES; i++){
-            if (inodeTable[i] != null && inodeTable[i].getFilename().equals(fileName)){
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public int countFiles(){
-        int count = 0;
-        for (int i = 0; i < MAXFILES; i++){
-            if (inodeTable[i] != null) count++;
-        }
-        return count;
-    }
-
     public void writeFile(String fileName, byte[] data) throws IOException{
         if(fileName == null || data == null) throw new IllegalArgumentException("File not found " + fileName);
 
@@ -184,10 +188,13 @@ public class FileSystemManager {
             int blocksNeeded = (data.length + BLOCK_SIZE - 1) /BLOCK_SIZE;
 
             int start = -1;
+            //free blocks before writing new data
+            FEntry entryToWrite = inodeTable[fileIndex];
+            freeBlocks(entryToWrite);
 
             //find a slot of freeblocks of length blocksNeeded
             outer:
-            for(int i =0; i < freeBlockList.length - blocksNeeded; i++){
+            for(int i =0; i <= freeBlockList.length - blocksNeeded; i++){
                 for(int j = 0; j < blocksNeeded; j++){
                     if(!freeBlockList[i+j]) continue outer;
                 }
@@ -196,7 +203,7 @@ public class FileSystemManager {
             }
 
             if(start == -1) throw new IllegalStateException("Not enough free blocks.");
-        
+            
             // mark blocks allocated
             for (int i = 0; i < blocksNeeded; i++) {
                 freeBlockList[start + i] = false;
@@ -214,9 +221,6 @@ public class FileSystemManager {
         } finally {
             globalLock.unlock();
         }
-        
-        
-
     }
 
     public byte[] readFile(String fileName) throws IOException {
@@ -239,7 +243,4 @@ public class FileSystemManager {
             globalLock.unlock();
         }
     }
-
-
-    // TODO: Add other required methods,
 }

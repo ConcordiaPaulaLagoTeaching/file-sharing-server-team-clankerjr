@@ -6,8 +6,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,7 +14,7 @@ public class FileServer {
     private FileSystemManager fsManager;
     private int port;
     private ExecutorService threadPool;
-    private static int MAX_THREADS = 200;
+    private static int MAX_THREADS = 1000;
     public FileServer(int port, String fileSystemName, int totalSize){
         // Initialize the FileSystemManager
         FileSystemManager fsManager = new FileSystemManager(fileSystemName,
@@ -70,6 +68,7 @@ public class FileServer {
                             }
                             fsManager.createFile(parts[1]);
                             writer.println("SUCCESS: File '" + parts[1] + "' created.");
+                            writer.flush();
                             break;
 
                         case "READ":
@@ -80,6 +79,7 @@ public class FileServer {
                             byte[] data = fsManager.readFile(parts[1]);
                             String content = new String(data);
                             writer.println("SUCCESS: " + content);
+                            writer.flush();
                             break;
 
                         case "WRITE":
@@ -98,6 +98,7 @@ public class FileServer {
                             byte[] writedata = writecontent.getBytes();
                             fsManager.writeFile(parts[1], writedata);
                             writer.println("SUCCESS: File '" + parts[1] + "' written.");
+                            writer.flush();
                             break;
 
                         case "LIST":
@@ -107,6 +108,7 @@ public class FileServer {
                             }
                             String filenames = fsManager.listFiles();
                             writer.println("SUCCESS: " + filenames);
+                            writer.flush();
                             break;
 
                         case "DELETE":
@@ -116,6 +118,7 @@ public class FileServer {
                             }
                             fsManager.deleteFile(parts[1]);
                             writer.println("SUCCESS: File '" + parts[1] + "' deleted.");
+                            writer.flush();
                             break;
 
                         case "QUIT":
