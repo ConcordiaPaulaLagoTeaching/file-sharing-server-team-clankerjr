@@ -34,8 +34,12 @@ public class FileServer {
                 ) {
                     String line;
                     while ((line = reader.readLine()) != null) {
+                        if (line.trim().isEmpty()){
+                            writer.println("ERROR: Please enter a command.");
+                            continue;
+                        }
                         System.out.println("Received from client: " + line);
-                        String[] parts = line.split(" ");
+                        String[] parts = line.trim().split("\\s+");
                         String command = parts[0].toUpperCase();
 
                         try {
