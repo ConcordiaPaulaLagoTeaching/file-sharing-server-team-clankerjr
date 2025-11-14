@@ -203,7 +203,7 @@ public class FileSystemManager {
             }
 
             // write data to disk at block offset
-            disk.seek((long) start * BLOCK_SIZE);
+            disk.seek((long) (start+1) * BLOCK_SIZE);
             disk.write(data);
 
             // update inode (replace entry with same filename, size and start)
@@ -231,7 +231,7 @@ public class FileSystemManager {
             short start = entry.getFirstBlock();
             if (start < 0 || size <= 0) return new byte[0];
             byte[] buf = new byte[size];
-            disk.seek((long) start * BLOCK_SIZE);
+            disk.seek((long) (start+1) * BLOCK_SIZE);
             disk.readFully(buf);
             
             return buf;
